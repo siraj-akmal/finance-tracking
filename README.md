@@ -1,4 +1,4 @@
-## 🎯 Project Overview
+## Project Overview
 
 This application transforms your credit card statements into actionable financial insights. Simply upload your CSV statements from AMEX, and the AI will automatically categorize your transactions, track your spending patterns, and help you stay on budget.
 
@@ -11,7 +11,7 @@ This application transforms your credit card statements into actionable financia
 - **📱 Modern UI**: interface built with Next.js and Tailwind CSS
 - **🔒 Local Processing**: Your financial data stays on your machine - no cloud processing required
 
-## 🛠️ Tools & Technologies
+## Tools & Technologies
 
 ### Required Software
 
@@ -29,7 +29,7 @@ This application transforms your credit card statements into actionable financia
 - **AI**: Ollama with Mistral model
 - **Package Manager**: pnpm
 
-## 🚀 Local Setup
+## Local Setup
 
 ### Prerequisites
 

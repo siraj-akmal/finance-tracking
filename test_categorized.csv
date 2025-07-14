@@ -1,0 +1,64 @@
+date,description,amount,category,bank,month,llmCategorized
+2025-04-24,PAYPAL *UBER        8665761039          CA,-4.99,Ubers/Lyfts,AMEX,2025-04,true
+2025-04-24,UBER EATS           help.uber.com       CA,-21.65,Ubers/Lyfts,AMEX,2025-04,true
+2025-04-23,AplPay BLANK STREET Boston              MA,-5.03,Sweet Treats,AMEX,2025-04,true
+2025-04-23,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-23,AplPay TABLE MERCATOBOSTON              MA,-23.54,Eating Out,AMEX,2025-04,true
+2025-04-22,AplPay FIV*GONG CHA MALDEN              MA,-8.03,Sweet Treats,AMEX,2025-04,true
+2025-04-22,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-22,PAYPAL *MULLVAD     4029357733          SW,-5.76,Subscriptions,AMEX,2025-04,true
+2025-04-22,TST* LOLITA COCINA &BOSTON              MA,-34.24,Eating Out,AMEX,2025-04,true
+2025-04-21,AplPay IL MONDO PIZZ617-2777161         MA,-4.99,Sweet Treats,AMEX,2025-04,true
+2025-04-21,AplPay TIPSY'S MKT BROXBURY CROSS       MA,-15.98,Sweet Treats,AMEX,2025-04,true
+2025-04-20,AplPay BRIGHAM LIQUOBOSTON              MA,-8.32,Nightlife,AMEX,2025-04,true
+2025-04-20,AplPay DUNKIN #35050BOSTON              MA,-3.5,Eating Out,AMEX,2025-04,true
+2025-04-20,AplPay TACO BELL 041ALLSTON             MA,-9.63,Eating Out,AMEX,2025-04,true
+2025-04-19,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-18,AplPay TST* WINGS OVBOSTON              MA,-12.88,Eating Out,AMEX,2025-04,true
+2025-04-18,SCORPION BAR GRAND  BOSTON              MA,-39.99,Nightlife,AMEX,2025-04,true
+2025-04-17,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-16,AMAZON.COM          AMZN.COM/BILL       WA,-8.48,Shopping,AMEX,2025-04,true
+2025-04-16,AplPay Grubhub - NorBoston              MA,-10,Eating Out,AMEX,2025-04,true
+2025-04-15,AplPay CPI*PRESTIGE CLIFTON PARK        NY,-3,Eating Out,AMEX,2025-04,true
+2025-04-14,AplPay BERRYLINE    Cambridge           MA,-9.91,Sweet Treats,AMEX,2025-04,true
+2025-04-14,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-14,AplPay ZINNEKEN'S BECambridge           MA,-14.18,Sweet Treats,AMEX,2025-04,true
+2025-04-13,AplPay H MART CBG   CAMBRIDGE           MA,-6.99,Groceries,AMEX,2025-04,true
+2025-04-13,AplPay MBTA-55001252BOSTON              MA,-0.7,Public Transit,AMEX,2025-04,true
+2025-04-13,AplPay MBTA-55001252BOSTON              MA,-1.7,Public Transit,AMEX,2025-04,true
+2025-04-13,AplPay MBTA-55001252BOSTON              MA,-1.7,Public Transit,AMEX,2025-04,true
+2025-04-13,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-13,TST* LANNER 00156586CAMBRIDGE           MA,-151.46,Eating Out,AMEX,2025-04,true
+2025-04-12,AplPay TACO BELL #03BOSTON              MA,-7.25,Eating Out,AMEX,2025-04,true
+2025-04-12,AplPay TACO BELL #03BOSTON              MA,-10.69,Eating Out,AMEX,2025-04,true
+2025-04-11,AplPay CRISPY DOUGH BOSTON              MA,-10.55,Sweet Treats,AMEX,2025-04,true
+2025-04-11,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-11,CRISPY DOUGH PIZZERIBOSTON              MA,-5.27,Eating Out,AMEX,2025-04,true
+2025-04-11,HIGH STREET RESTAURABOSTON              MA,-14,Eating Out,AMEX,2025-04,true
+2025-04-11,HIGH STREET RESTAURABOSTON              MA,-42.52,Eating Out,AMEX,2025-04,true
+2025-04-10,NORTHEASTERN GIVING 617-373-5520        MA,-10,Donations,AMEX,2025-04,true
+2025-04-09,IC* COSTCO BY INSTACISSAQUAH            WA,-148.2,Shopping,AMEX,2025-04,true
+2025-04-08,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-07,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-07,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-05,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-05,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-04,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-04,AplPay TEA-DO (NEU /Boston              MA,-17.92,Sweet Treats,AMEX,2025-04,true
+2025-04-02,AMAZON MARKEPLACE NA PA,-58.32,Shopping,AMEX,2025-04,true
+2025-04-02,AMAZON MARKEPLACE NA PA,-125.93,Shopping,AMEX,2025-04,true
+2025-04-02,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-04,true
+2025-04-02,DUNKIN' MOBILE      CANTON              MA,-7,Eating Out,AMEX,2025-04,true
+2025-04-01,AMAZON.COM          AMZN.COM/BILL       WA,-29.2,Shopping,AMEX,2025-04,true
+2025-04-01,AplPay LYFT         855-280-0278        CA,-11.2,Ubers/Lyfts,AMEX,2025-04,true
+2025-03-31,UBER,-15.44,Ubers/Lyfts,AMEX,2025-03,true
+2025-03-30,AplPay BLANK STREET Boston              MA,-6.32,Sweet Treats,AMEX,2025-03,true
+2025-03-30,AplPay CRISPY DOUGH BOSTON              MA,-10.55,Sweet Treats,AMEX,2025-03,true
+2025-03-30,AplPay MBTA-55001252BOSTON              MA,-1.7,Public Transit,AMEX,2025-03,true
+2025-03-30,AplPay TRADER JOE S BOSTON              MA,-49.74,Groceries,AMEX,2025-03,true
+2025-03-29,AplPay FUENTES MARKEBOSTON              MA,-50.98,Shopping,AMEX,2025-03,true
+2025-03-29,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-03,true
+2025-03-29,AplPay POKE BAR AND BOSTON              MA,-19.21,Nightlife,AMEX,2025-03,true
+2025-03-29,AplPay TIPSY'S MKT BROXBURY CROSS       MA,-21.99,Sweet Treats,AMEX,2025-03,true
+2025-03-28,AplPay MBTA-55001252BOSTON              MA,-2.4,Public Transit,AMEX,2025-03,true
+2025-03-28,BLANCHARDS - ALLSTONALLSTON             MA,-233.96,Nightlife,AMEX,2025-03,true

@@ -1,10 +1,10 @@
 import mysql from 'mysql2/promise';
 
 const dbConfig = {
-  host: DB_HOST,
-  database: DB_NAME,
-  user: 'DB_USER,
-  password: DB_PASSWORD,
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'finance_tracker',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
 };
 
 export async function getConnection() {

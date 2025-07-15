@@ -18,6 +18,10 @@ yarn-error.log*
 
 # env files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -25,3 +29,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# CSV files with personal data
+*.csv
+!sample_transactions.csv
+!sql/03_sample_data.sql
+
+# uploads directory
+uploads/
+
+# macOS
+.DS_Store

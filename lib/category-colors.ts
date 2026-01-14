@@ -1,7 +1,6 @@
 // Category color mapping for the finance tracker
 
 export const categories = [
-  "Housing",
   "Food & Drink",
   "Groceries",
   "Transportation",
@@ -17,7 +16,6 @@ export const categories = [
 export type Category = typeof categories[number];
 
 export const categoryColors: Record<Category, string> = {
-  "Housing": "#6366f1",                // Indigo
   "Food & Drink": "#f59e42",           // Orange
   "Groceries": "#22c55e",              // Green
   "Transportation": "#0ea5e9",         // Sky
@@ -39,7 +37,6 @@ export const getCategoryColorLight = (category: string): string => {
   const baseColor = getCategoryColor(category)
   // Add lighter variants for each color
   const lightColors: Record<string, string> = {
-    "#6366f1": "#a5b4fc", // Lighter indigo
     "#f59e42": "#fcd34d", // Lighter orange
     "#22c55e": "#86efac", // Lighter green
     "#0ea5e9": "#7dd3fc", // Lighter sky

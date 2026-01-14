@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS savings (
 
 -- Insert default budget categories
 INSERT IGNORE INTO budgets (category, budgeted, month) VALUES
-('Housing', 0.00, ''),
 ('Food & Drink', 0.00, ''),
 ('Groceries', 0.00, ''),
 ('Transportation', 0.00, ''),

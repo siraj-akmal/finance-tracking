@@ -27,7 +27,6 @@ INSERT INTO savings (month, amount, type, description) VALUES
 ('2024-01', 500.00, 'investment', '401k Contribution');
 
 -- Sample budget allocations
-UPDATE budgets SET budgeted = 2000.00 WHERE category = 'Housing';
 UPDATE budgets SET budgeted = 400.00 WHERE category = 'Food & Drink';
 UPDATE budgets SET budgeted = 300.00 WHERE category = 'Groceries';
 UPDATE budgets SET budgeted = 200.00 WHERE category = 'Transportation';

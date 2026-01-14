@@ -168,7 +168,6 @@ finance-tracker/
 ### AI Categorization
 
 The app uses Ollama with the Mistral model to categorize transactions into these categories:
-- Housing
 - Food & Drink
 - Groceries
 - Transportation

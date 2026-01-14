@@ -13,6 +13,7 @@ import { CategoryBadge } from "@/components/category-badge"
 import { categories } from "@/lib/category-colors"
 import { Label } from "@/components/ui/label"
 import { useMonths } from "@/hooks/use-months"
+import { removeNumbers } from "@/lib/utils"
 
 interface Transaction {
   id: string
@@ -179,7 +180,7 @@ export function TransactionModal({ isOpen, onClose, category, month, onTransacti
                     <TableCell className="font-mono text-sm">{new Date(transaction.date).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {transaction.description}
+                        {removeNumbers(transaction.description)}
                         {transaction.edited && (
                           <Badge variant="secondary" className="text-xs">
                             Edited
@@ -217,7 +218,7 @@ export function TransactionModal({ isOpen, onClose, category, month, onTransacti
             <DialogHeader>
               <DialogTitle>Edit Transaction Category</DialogTitle>
               <DialogDescription>
-                Change the category for "{editingTransaction?.description}"
+                Change the category for "{removeNumbers(editingTransaction?.description)}"
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

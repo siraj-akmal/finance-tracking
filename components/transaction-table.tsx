@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { CategoryBadge } from "@/components/category-badge"
 import { categories } from "@/lib/category-colors"
 import { useMonths } from "@/hooks/use-months"
+import { removeNumbers } from "@/lib/utils"
 
 interface Transaction {
   id: string
@@ -494,8 +495,8 @@ export function TransactionTable({ onTransactionUpdate }: TransactionTableProps)
                   <TableCell className="font-mono text-sm">{new Date(transaction.date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="truncate max-w-xs" title={transaction.description}>
-                        {transaction.description}
+                      <span className="truncate max-w-xs" title={removeNumbers(transaction.description)}>
+                        {removeNumbers(transaction.description)}
                       </span>
                       {transaction.edited && (
                         <Badge variant="secondary" className="text-xs">

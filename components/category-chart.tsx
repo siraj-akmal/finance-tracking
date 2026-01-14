@@ -132,8 +132,8 @@ export function CategoryChart({ data, budgetData = [], onCategoryClick }: Catego
               <Cell 
                 key={`cell-${index}`} 
                 fill={entry.color}
-                stroke={entry.budgetColor}
-                strokeWidth={entry.budgetUtilization >= 100 ? 8 : 0}
+                stroke="none"
+                strokeWidth={0}
               />
             ))}
           </Pie>

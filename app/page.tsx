@@ -7,7 +7,6 @@ import { DashboardOverview } from "@/components/dashboard-overview"
 import { TransactionTable } from "@/components/transaction-table"
 import { BudgetPanel } from "@/components/budget-panel"
 import { UploadForm } from "@/components/upload-form"
-import { IncomeForm } from "@/components/income-form"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRefresh } from "@/hooks/use-refresh"
 
@@ -33,12 +32,11 @@ export default function HomePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="upload">Upload CSV</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
-          <TabsTrigger value="income">Income & Savings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -86,18 +84,6 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <BudgetPanel key={refreshKey} onTransactionUpdate={handleTransactionUpdate} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="income" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Income & Savings Tracking</CardTitle>
-              <CardDescription>Track your monthly income, investments, and savings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <IncomeForm />
             </CardContent>
           </Card>
         </TabsContent>

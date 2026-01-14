@@ -20,7 +20,7 @@ function writeProgress(currentStep, totalSteps, message) {
 // Configuration
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const CATEGORIES = [
-  'Housing', 'Food & Drink', 'Groceries', 'Transportation', 'Lifestyle & Entertainment', 
+  'Food & Drink', 'Groceries', 'Transportation', 'Lifestyle & Entertainment', 
   'Shopping', 'Subscriptions', 'Health & Wellness', 'Gifts & Donations', 'Travel', 'Miscellaneous'
 ];
 
@@ -31,12 +31,11 @@ console.log(`📋 Available categories (${CATEGORIES.length}): ${CATEGORIES.join
 /**
  * System prompt for Ollama to categorize transactions
  */
-const SYSTEM_PROMPT = `You are a financial transaction categorizer. Your job is to categorize credit card transactions into one of these 11 categories:
+const SYSTEM_PROMPT = `You are a financial transaction categorizer. Your job is to categorize credit card transactions into one of these 10 categories:
 
 ${CATEGORIES.join(', ')}
 
 Rules:
-- Housing: Rent, mortgage, housing payments, property taxes
 - Food & Drink: Restaurants, dining out, coffee shops, bars, cafes, takeout
 - Groceries: Grocery stores, supermarkets, food shopping, farmers markets
 - Transportation: Uber, Lyft, taxi, bus, train, subway, gas stations, parking, tolls

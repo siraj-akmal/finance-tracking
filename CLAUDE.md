@@ -19,7 +19,7 @@ All data processing is **local-first** — no financial data is sent to external
 | Framework | Next.js 15 (App Router) |
 | UI | React 19 + TypeScript 5 |
 | Styling | Tailwind CSS 3 + Radix UI (shadcn/ui) |
-| Database | MySQL 8.0+ via `mysql2/promise` |
+| Database | MySQL 8.0+ via `mysql2/promise` (connection pool) |
 | AI / Categorization | Ollama (local) + Mistral model |
 | Package Manager | pnpm |
 | CSV Processing | Node.js scripts (not Next.js API routes) |
@@ -97,8 +97,10 @@ finance-tracking/
 │   │   ├── upload/route.ts         # CSV file upload + orchestration
 │   │   └── upload/progress/route.ts    # In-memory upload progress store
 │   ├── globals.css                 # Global Tailwind styles
-│   ├── layout.tsx                  # Root layout (ThemeProvider, Toaster)
+│   ├── layout.tsx                  # Root layout (ThemeProvider + FinanceProvider + Toaster)
 │   └── page.tsx                    # Root page with 4-tab layout
+├── context/
+│   └── finance-context.tsx         # FinanceProvider + useFinance() hook (shared state)
 ├── components/
 │   ├── ui/                         # shadcn/ui primitives (DO NOT modify directly)
 │   ├── dashboard-overview.tsx
@@ -115,12 +117,13 @@ finance-tracking/
 │   ├── category-badge.tsx
 │   └── theme-provider.tsx
 ├── hooks/
-│   ├── use-refresh.ts              # Shared refresh trigger
+│   ├── use-months.ts               # Thin wrappers that delegate to useFinance()
 │   ├── use-mobile.tsx
-│   ├── use-months.ts
 │   └── use-toast.ts
 ├── lib/
-│   ├── database.ts                 # MySQL connection + query helper
+│   ├── types.ts                    # Canonical domain types (Transaction, Budget, etc.)
+│   ├── api.ts                      # Pure functional client-side API service layer
+│   ├── database.ts                 # OOP singleton DB pool + query() helper
 │   ├── category-colors.ts          # Category → color mappings
 │   └── utils.ts                    # cn() and misc utilities
 ├── scripts/                        # Standalone Node.js scripts (not bundled)
@@ -135,6 +138,84 @@ finance-tracking/
 │   └── 03_sample_data.sql
 ├── sample_transactions.csv         # AMEX format example data
 └── uploads/                        # Runtime upload dir (gitignored)
+```
+
+---
+
+## Architecture Overview
+
+### OOP Layer: `lib/database.ts`
+
+`DatabaseClient` is a **singleton class** that owns a `mysql2` connection pool.
+Instead of creating one TCP connection per query (the old approach), the pool
+reuses connections across requests — significantly faster under concurrent load.
+
+```typescript
+// Only the module-level function is exported; the class stays internal.
+export async function query<T = unknown>(sql: string, params?: unknown[]): Promise<T>
+export function convertDecimalToNumber(value: unknown): number
+```
+
+All API routes call `query()`. Never call `mysql.createConnection()` directly.
+
+### Functional Layer: `lib/api.ts`
+
+**Pure async functions** for every API endpoint. No React hooks, no side effects
+beyond the HTTP call. Import these in client components instead of writing raw `fetch`.
+
+```typescript
+// Transactions
+getTransactions(filters?)     → { transactions: Transaction[] }
+createTransaction(data)       → { success, id }
+updateTransaction(id, data)   → { success }
+deleteTransaction(id)         → { success }
+
+// Dashboard
+getDashboard(month)           → DashboardData
+
+// Months
+getMonths()                   → { months: MonthOption[] }
+
+// Budgets
+getGlobalBudgets()            → { budgets: Budget[] }
+saveGlobalBudget(cat, amount) → { success }
+
+// Income
+getIncome(month?)             → { income: IncomeEntry[] }
+createIncome(data)            → { success, id }
+
+// Savings
+getSavings(month?)            → { savings: SavingsEntry[] }
+createSavings(data)           → { success, id }
+```
+
+### Shared State: `context/finance-context.tsx`
+
+`FinanceProvider` wraps the entire app (mounted in `app/layout.tsx`).
+Every feature tab reads from the same context via `useFinance()`:
+
+```typescript
+const {
+  selectedMonth,      // YYYY-MM — shared across Dashboard, Budget, Income, Transactions
+  setSelectedMonth,
+  months,             // MonthOption[] — fetched once, refreshed on demand
+  monthsLoading,
+  triggerRefresh,     // call after any mutation to invalidate all tab data
+  refreshKey,         // pass as key= prop to force component remounts
+} = useFinance()
+```
+
+**Why this matters for data consistency:** Previously each tab had its own
+`useDefaultMonth()` call, meaning the Dashboard could be on January while Budget
+showed March. Now all tabs share one `selectedMonth`.
+
+### Type Contracts: `lib/types.ts`
+
+All domain interfaces live here. Import types from this module to avoid drift:
+
+```typescript
+import type { Transaction, Budget, BudgetItem, IncomeEntry, SavingsEntry,
+              MonthOption, DashboardMetrics, CategorySpending, DashboardData } from '@/lib/types'
 ```
 
 ---
@@ -164,6 +245,10 @@ Indexes on: `month`, `category`, `date`
 | budgeted | DECIMAL(10,2) | |
 | month | VARCHAR(7) | Empty string `''` for global budgets |
 | created_at | TIMESTAMP | |
+
+> **Important:** The `budgets` table does NOT have `spent` or `remaining` columns.
+> Those values are computed at runtime by joining with `transactions`. Never try
+> to INSERT or UPDATE `spent`/`remaining` in this table.
 
 ### `income`
 | Column | Type | Notes |
@@ -198,9 +283,9 @@ Indexes on: `month`, `category`, `date`
 | GET | `/api/dashboard` | Aggregated dashboard metrics (query: `month`) |
 | GET | `/api/months` | Unique months across all tables, newest first |
 | GET | `/api/budgets` | List budgets (query: `month`) |
-| POST | `/api/budgets` | Create/update budget |
+| POST | `/api/budgets` | Create/update budget (only stores `month`, `category`, `budgeted`) |
 | GET | `/api/budgets/global` | List global (cross-month) budgets |
-| POST | `/api/budgets/global` | Set global budget for a category |
+| POST | `/api/budgets/global` | Upsert global budget for a category |
 | GET | `/api/income` | List income entries (query: `month`) |
 | POST | `/api/income` | Create income entry |
 | GET | `/api/savings` | List savings entries (query: `month`) |
@@ -253,7 +338,7 @@ import-categorized-csv.js
         ↓
 Frontend polls GET /api/upload/progress
   → shows real-time progress modal
-  → triggers dashboard refresh on completion
+  → calls triggerRefresh() on completion → all tabs update
 ```
 
 **Supported bank formats:**
@@ -266,8 +351,9 @@ Frontend polls GET /api/upload/progress
 
 ### TypeScript / React
 - All feature components use `"use client"` at the top
-- Props are typed with inline TypeScript interfaces (not separate type files)
-- Async data fetching uses `try/catch` with toast notifications for errors
+- Domain types are imported from `@/lib/types` — never redeclare them inline
+- API calls use functions from `@/lib/api` — never write raw `fetch()` in components
+- Shared month/refresh state comes from `useFinance()` — never from `useDefaultMonth()` (deprecated wrapper)
 - `useCallback` for callbacks passed to child components
 - `Suspense` boundaries around lazily-loaded tabs in `app/page.tsx`
 
@@ -275,16 +361,18 @@ Frontend polls GET /api/upload/progress
 Use `@/` for all internal imports (maps to repo root):
 ```typescript
 import { query } from '@/lib/database'
+import { getTransactions } from '@/lib/api'
+import type { Transaction } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { useRefresh } from '@/hooks/use-refresh'
+import { useFinance } from '@/context/finance-context'
 ```
 
 ### Database Queries
-Always use the `query()` helper from `lib/database.ts`:
+Always use the `query()` helper from `lib/database.ts`. Use typed generics:
 ```typescript
 import { query, convertDecimalToNumber } from '@/lib/database'
 
-const rows = await query('SELECT * FROM transactions WHERE month = ?', [month])
+const rows = await query<MyRowType[]>('SELECT * FROM transactions WHERE month = ?', [month])
 // MySQL DECIMALs come back as strings — use convertDecimalToNumber()
 ```
 
@@ -334,17 +422,21 @@ Months are stored and queried as `YYYY-MM` strings (e.g., `2024-01`). Display fo
 
 6. **`uploads/` directory** — Created at runtime and gitignored. The upload API expects it to exist; create it manually if missing (`mkdir uploads`).
 
+7. **`spent` and `remaining` are never stored** — The `budgets` table only has `(id, category, budgeted, month, created_at)`. Budget utilization is always computed at runtime by joining with `transactions`.
+
 ---
 
 ## Development Workflow
 
 When adding a new feature:
 
-1. **New API route** → create `app/api/<feature>/route.ts` following the existing pattern
-2. **New component** → add to `components/<feature>.tsx` with `"use client"` if interactive
-3. **New DB column** → add a migration SQL statement; update `lib/database.ts` types if needed
-4. **New category** → update `lib/category-colors.ts` AND `scripts/categorize-csv.js` (the category list is duplicated there)
-5. **Environment variable** → add to `.env`, document here and in `README.md`
+1. **New domain type** → add to `lib/types.ts`
+2. **New API route** → create `app/api/<feature>/route.ts` following the existing pattern
+3. **New client API function** → add to `lib/api.ts` following the pure-function pattern
+4. **New component** → add to `components/<feature>.tsx` with `"use client"` if interactive; use `useFinance()` for month/refresh state
+5. **New DB column** → add a migration SQL statement; update `lib/types.ts` accordingly
+6. **New category** → update `lib/category-colors.ts` AND `scripts/categorize-csv.js` (the category list is duplicated there)
+7. **Environment variable** → add to `.env`, document here and in `README.md`
 
 ---
 
@@ -358,3 +450,4 @@ Since there is no test suite, after making changes verify:
 - [ ] Affected API routes return correct data in browser/curl
 - [ ] Database queries execute correctly (check `scripts/check-database.js`)
 - [ ] Upload flow works end-to-end with a sample CSV if upload code was changed
+- [ ] Changing month on one tab is reflected immediately on other tabs (FinanceContext)

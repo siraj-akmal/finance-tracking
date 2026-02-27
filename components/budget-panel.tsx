@@ -1,5 +1,23 @@
 "use client"
 
+/**
+ * components/budget-panel.tsx
+ *
+ * Budget management panel: summary cards, overall progress bar,
+ * per-category spending-vs-budget table, and action buttons.
+ *
+ * State management:
+ * - selectedMonth / months come from FinanceProvider (shared across tabs).
+ * - budgetData and totalInvestments are local: they are derived from the
+ *   selected month and the global budget settings.
+ *
+ * Data flow:
+ *   1. Fetch global budgets (category → budgeted amount, month-agnostic)
+ *   2. Fetch transactions for selectedMonth to get per-category spend
+ *   3. Fetch savings for selectedMonth to identify investment amounts
+ *   4. Merge into BudgetItem[] for display
+ */
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,112 +29,90 @@ import { Badge } from "@/components/ui/badge"
 import { Save, Download, Upload, TrendingUp, TrendingDown, PiggyBank } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { categories } from "@/lib/category-colors"
-import { useDefaultMonth } from "@/hooks/use-months"
+import { useFinance } from "@/context/finance-context"
 import { SpendingVsBudgetTable } from "@/components/spending-vs-budget-table"
 import { TransactionModal } from "@/components/transaction-modal"
+import { getGlobalBudgets, getTransactions, getSavings, saveGlobalBudget } from "@/lib/api"
+import type { BudgetItem } from "@/lib/types"
 
-interface BudgetItem {
-  category: string
-  budgeted: number
-  spent: number
-  remaining: number
-}
+/** Investment saving types that count against the budget. */
+const INVESTMENT_TYPES = new Set([
+  'investment', 'stocks', 'bonds', 'crypto', 'etf',
+  'mutual-fund', 'real-estate', '401k', 'ira', 'roth-ira',
+])
 
 interface BudgetPanelProps {
-  onTransactionUpdate?: () => void;
+  onTransactionUpdate?: () => void
 }
 
+/**
+ * BudgetPanel
+ *
+ * Combines global budget settings with the current month's actual spending
+ * to show how well each category is tracking against its budget.
+ */
 export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
-  const [budgetData, setBudgetData] = useState<BudgetItem[]>([])
-  const { selectedMonth, setSelectedMonth, months, loading: monthsLoading } = useDefaultMonth()
-  const [templateBudget, setTemplateBudget] = useState<Record<string, number>>({})
-  const [totalInvestments, setTotalInvestments] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { selectedMonth, setSelectedMonth, months, monthsLoading } = useFinance()
   const { toast } = useToast()
 
-  // State for transaction modal
-  const [showTransactionModal, setShowTransactionModal] = useState(false)
+  const [budgetData, setBudgetData]           = useState<BudgetItem[]>([])
+  const [templateBudget, setTemplateBudget]   = useState<Record<string, number>>({})
+  const [totalInvestments, setTotalInvestments] = useState(0)
+  const [loading, setLoading]                 = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [showTransactionModal, setShowTransactionModal] = useState(false)
 
-  // Handler for category click
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category)
     setShowTransactionModal(true)
   }
 
+  // Re-fetch when the shared month selection changes
   useEffect(() => {
-    if (selectedMonth) {
-      fetchBudgetData()
-    }
+    if (selectedMonth) fetchBudgetData()
   }, [selectedMonth])
 
-  // Add a refresh function that can be called from parent components
-  const refreshBudgetData = () => {
-    fetchBudgetData()
-  }
-
+  /**
+   * Loads global budgets, spending, and savings for the selected month,
+   * then merges them into BudgetItem[] using pure functional map/filter/reduce.
+   */
   const fetchBudgetData = async () => {
     try {
       setLoading(true)
-      
-      // Fetch global budget settings (not tied to specific month)
-      const budgetResponse = await fetch('/api/budgets/global')
-      const budgetData = await budgetResponse.json()
-      
-      // Fetch spending data for the selected month
-      const spendingResponse = await fetch(`/api/transactions?month=${selectedMonth}`)
-      const spendingData = await spendingResponse.json()
-      
-      // Fetch investment data for the selected month
-      const investmentsResponse = await fetch(`/api/savings?month=${selectedMonth}`)
-      const investmentsData = await investmentsResponse.json()
-      
-      if (budgetResponse.ok && spendingResponse.ok && investmentsResponse.ok) {
-        // Get global budget amounts
-        const globalBudgets = budgetData.budgets || []
-        console.log('🔍 Global budgets from API:', globalBudgets.map((b: any) => ({ category: b.category, budgeted: b.budgeted })))
-        
-        // Calculate spending by category for the selected month
-        const spendingByCategory = new Map()
-        if (spendingData.transactions) {
-          spendingData.transactions.forEach((transaction: any) => {
-            const category = transaction.category
-            const amount = Math.abs(Number(transaction.amount))
-            spendingByCategory.set(category, (spendingByCategory.get(category) || 0) + amount)
-          })
-        }
-        
-        // Calculate total investments for the month (to be deducted from remaining budget)
-        const totalInvestments = (investmentsData.savings || [])
-          .filter((saving: any) => ['investment', 'stocks', 'bonds', 'crypto', 'etf', 'mutual-fund', 'real-estate', '401k', 'ira', 'roth-ira'].includes(saving.type))
-          .reduce((sum: number, saving: any) => sum + Number(saving.amount), 0)
-        
-        // Combine global budgets with current month's spending
-        const combinedData = globalBudgets.map((budget: any) => {
-          const spent = spendingByCategory.get(budget.category) || 0
-          return {
-            category: budget.category,
-            budgeted: budget.budgeted,
-            spent: spent,
-            remaining: budget.budgeted - spent,
-          }
-        })
-        console.log('🔍 Combined data before setting state:', combinedData.map((b: any) => ({ category: b.category, budgeted: b.budgeted })))
-        
-        setBudgetData(combinedData)
-        
-        // Store total investments for use in calculations
-        setTotalInvestments(totalInvestments)
-      } else {
-        console.error('Failed to fetch budget data:', budgetData.error || spendingData.error || investmentsData.error)
-        toast({
-          title: "Error",
-          description: "Failed to load budget data",
-          variant: "destructive",
-        })
-      }
+
+      // Parallel fetch for all required data
+      const [budgetRes, spendingRes, savingsRes] = await Promise.all([
+        getGlobalBudgets(),
+        getTransactions({ month: selectedMonth }),
+        getSavings(selectedMonth),
+      ])
+
+      // Build category → amount map using reduce (functional style)
+      const spendingByCategory = spendingRes.transactions.reduce<Map<string, number>>(
+        (acc, t) => {
+          const amount = Math.abs(Number(t.amount))
+          return acc.set(t.category, (acc.get(t.category) ?? 0) + amount)
+        },
+        new Map(),
+      )
+
+      // Sum investment amounts to deduct from remaining budget
+      const investments = savingsRes.savings
+        .filter(s => INVESTMENT_TYPES.has(s.type))
+        .reduce((sum, s) => sum + Number(s.amount), 0)
+
+      // Merge global budgets with actual spend (pure map — no mutation)
+      const combined = budgetRes.budgets.map(b => ({
+        category: b.category,
+        budgeted: Number(b.budgeted),
+        spent:    spendingByCategory.get(b.category) ?? 0,
+        remaining: Number(b.budgeted) - (spendingByCategory.get(b.category) ?? 0),
+      }))
+
+      setBudgetData(combined)
+      setTotalInvestments(investments)
     } catch (error) {
-      console.error('Error fetching budget data:', error)
+      console.error('BudgetPanel: failed to fetch budget data:', error)
       toast({
         title: "Error",
         description: "Failed to load budget data",
@@ -127,86 +123,68 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
     }
   }
 
-  // Update budget and persist to backend, then refetch dashboard data
+  /**
+   * Persists an updated budget amount for a single category, then refreshes
+   * the local state so the UI reflects the change immediately.
+   */
   const handleBudgetChange = async (category: string, amount: number) => {
-    // Persist to backend first
     try {
-      await fetch('/api/budgets/global', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, budgeted: amount }),
-      })
-      
-      // Update local state immediately for responsive UI
-      setBudgetData((prev) =>
-        prev.map((item) =>
-          item.category === category ? { ...item, budgeted: amount, remaining: amount - item.spent } : item,
+      await saveGlobalBudget(category, amount)
+
+      // Optimistic local update for responsive UI
+      setBudgetData(prev =>
+        prev.map(item =>
+          item.category === category
+            ? { ...item, budgeted: amount, remaining: amount - item.spent }
+            : item,
         ),
       )
-      
-      // Refetch budget data to ensure all dependent UI is up-to-date and properly sorted
-      await fetchBudgetData();
-      
+
+      // Full refetch to ensure sort order and totals are accurate
+      await fetchBudgetData()
+
       toast({
         title: 'Budget Updated',
         description: `${category} budget updated to $${amount.toFixed(2)}`,
       })
     } catch (error) {
-      console.error('Error updating budget:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to save budget',
-        variant: 'destructive',
-      })
+      console.error('BudgetPanel: failed to update budget:', error)
+      toast({ title: 'Error', description: 'Failed to save budget', variant: 'destructive' })
     }
   }
 
+  /**
+   * Persists every category's current budget to the backend in parallel.
+   */
   const handleSaveBudget = async () => {
     try {
-      const budgetPromises = uniqueBudgetData.map(budget => 
-        fetch('/api/budgets/global', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            category: budget.category,
-            budgeted: budget.budgeted,
-          }),
-        })
+      await Promise.all(
+        uniqueBudgetData.map(b => saveGlobalBudget(b.category, b.budgeted)),
       )
-
-      await Promise.all(budgetPromises)
-
       toast({
         title: "Budget saved",
         description: "Global budget settings have been saved for all months",
       })
     } catch (error) {
-      console.error('Error saving budget:', error)
-      toast({
-        title: "Error",
-        description: "Failed to save budget",
-        variant: "destructive",
-      })
+      console.error('BudgetPanel: failed to save budget:', error)
+      toast({ title: "Error", description: "Failed to save budget", variant: "destructive" })
     }
   }
 
+  /**
+   * Snapshots the current budget amounts into an in-memory template.
+   * The template can later be re-applied via handleApplyTemplate.
+   */
   const handleSaveAsTemplate = () => {
-    const template = budgetData.reduce(
-      (acc, item) => {
-        acc[item.category] = item.budgeted
-        return acc
-      },
-      {} as Record<string, number>,
+    const template = budgetData.reduce<Record<string, number>>(
+      (acc, item) => ({ ...acc, [item.category]: item.budgeted }),
+      {},
     )
     setTemplateBudget(template)
-    toast({
-      title: "Template saved",
-      description: "Current budget has been saved as your default template",
-    })
+    toast({ title: "Template saved", description: "Current budget saved as default template" })
   }
 
+  /** Applies the saved template amounts to the current budget state. */
   const handleApplyTemplate = () => {
     if (Object.keys(templateBudget).length === 0) {
       toast({
@@ -216,34 +194,27 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
       })
       return
     }
-
-    setBudgetData((prev) =>
-      prev.map((item) => ({
-        ...item,
-        budgeted: templateBudget[item.category] || item.budgeted,
-        remaining: (templateBudget[item.category] || item.budgeted) - item.spent,
-      })),
+    setBudgetData(prev =>
+      prev.map(item => {
+        const budgeted = templateBudget[item.category] ?? item.budgeted
+        return { ...item, budgeted, remaining: budgeted - item.spent }
+      }),
     )
-
-    toast({
-      title: "Template applied",
-      description: "Default budget template has been applied",
-    })
+    toast({ title: "Template applied", description: "Default budget template has been applied" })
   }
 
-  // Deduplicate budget data by category
+  // Deduplicate by category and sort by budgeted amount descending
   const uniqueBudgetData = Array.from(
-    new Map(budgetData.map(item => [item.category, item])).values()
+    new Map(budgetData.map(item => [item.category, item])).values(),
   ).sort((a, b) => b.budgeted - a.budgeted)
-  
-  console.log('🔍 Final sorted uniqueBudgetData:', uniqueBudgetData.map((b: any) => ({ category: b.category, budgeted: b.budgeted })))
 
-  const totalBudgeted = uniqueBudgetData.reduce((sum, item) => sum + Number(item.budgeted), 0)
-  const totalSpent = uniqueBudgetData.reduce((sum, item) => sum + Number(item.spent), 0)
-  const totalRemaining = Number(totalBudgeted) - Number(totalSpent) - Number(totalInvestments)
-  const overallProgress = totalBudgeted > 0 ? ((totalSpent + totalInvestments) / totalBudgeted) * 100 : 0
+  const totalBudgeted   = uniqueBudgetData.reduce((sum, item) => sum + Number(item.budgeted), 0)
+  const totalSpent      = uniqueBudgetData.reduce((sum, item) => sum + Number(item.spent),    0)
+  const totalRemaining  = totalBudgeted - totalSpent - totalInvestments
+  const overallProgress = totalBudgeted > 0
+    ? ((totalSpent + totalInvestments) / totalBudgeted) * 100
+    : 0
 
-  // Show empty state if no months available
   if (months.length === 0 && !monthsLoading) {
     return (
       <div className="space-y-6">
@@ -255,10 +226,10 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
         </div>
         <div className="text-center py-12">
           <div className="text-muted-foreground text-lg mb-4">
-            💰 Your budget settings will appear here once you upload transaction data
+            Your budget settings will appear here once you upload transaction data
           </div>
           <p className="text-sm text-muted-foreground">
-            Go to the "Upload CSV" tab to import your credit card statements
+            Go to the &quot;Upload CSV&quot; tab to import your credit card statements
           </p>
         </div>
       </div>
@@ -269,13 +240,15 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-          <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+          <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
         </div>
-        <div className="h-96 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-96 bg-gray-200 rounded animate-pulse" />
       </div>
     )
   }
+
+  const selectedMonthLabel = months.find(m => m.value === selectedMonth)?.label ?? ''
 
   return (
     <div className="space-y-6">
@@ -283,7 +256,8 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Budget Management</h2>
           <p className="text-muted-foreground">
-            Set global budget amounts by category (applies to all months). Viewing spending for {months.find((m: any) => m.value === selectedMonth)?.label}
+            Set global budget amounts by category (applies to all months).
+            Viewing spending for {selectedMonthLabel}
           </p>
         </div>
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -291,7 +265,7 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
             <SelectValue placeholder="Select month" />
           </SelectTrigger>
           <SelectContent>
-            {months.map((month: any) => (
+            {months.map(month => (
               <SelectItem key={`budget-${month.value}`} value={month.value}>
                 {month.label}
               </SelectItem>
@@ -300,7 +274,7 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
         </Select>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -308,30 +282,33 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${Number(totalBudgeted).toFixed(2)}</div>
+            <div className="text-2xl font-bold">${totalBudgeted.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Monthly budget allocation</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${Number(totalSpent).toFixed(2)}</div>
+            <div className="text-2xl font-bold">${totalSpent.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Actual spending this month</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Investments</CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">${Number(totalInvestments).toFixed(2)}</div>
+            <div className="text-2xl font-bold text-blue-600">${totalInvestments.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Invested from budget</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Remaining</CardTitle>
@@ -340,7 +317,9 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalRemaining >= 0 ? "text-green-600" : "text-red-600"}`}>${Math.abs(Number(totalRemaining)).toFixed(2)}</div>
+            <div className={`text-2xl font-bold ${totalRemaining >= 0 ? "text-green-600" : "text-red-600"}`}>
+              ${Math.abs(totalRemaining).toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
               {totalRemaining >= 0 ? "Available to spend" : "Over budget amount"}
             </p>
@@ -348,32 +327,31 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
         </Card>
       </div>
 
-      {/* Overall Progress */}
+      {/* Overall progress */}
       <Card>
         <CardHeader>
           <CardTitle>Overall Budget Progress</CardTitle>
-                  <CardDescription>
-          {overallProgress.toFixed(1)}% of your total budget has been spent or invested
-        </CardDescription>
+          <CardDescription>
+            {overallProgress.toFixed(1)}% of your total budget has been spent or invested
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Progress value={Math.min(overallProgress, 100)} className="h-3" />
           <div className="flex justify-between text-sm text-muted-foreground mt-2">
-            <span>${Number(totalSpent).toFixed(2)} spent + ${Number(totalInvestments).toFixed(2)} invested</span>
-            <span>${Number(totalBudgeted).toFixed(2)} budgeted</span>
+            <span>${totalSpent.toFixed(2)} spent + ${totalInvestments.toFixed(2)} invested</span>
+            <span>${totalBudgeted.toFixed(2)} budgeted</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Budget Categories */}
-      <SpendingVsBudgetTable 
+      <SpendingVsBudgetTable
         key={`budget-table-${selectedMonth}-${JSON.stringify(uniqueBudgetData.map(d => d.budgeted))}`}
-        data={uniqueBudgetData} 
-        onBudgetChange={handleBudgetChange} 
+        data={uniqueBudgetData}
+        onBudgetChange={handleBudgetChange}
         onCategoryClick={handleCategoryClick}
       />
 
-      {/* Action Buttons */}
+      {/* Action buttons */}
       <div className="flex gap-4">
         <Button onClick={handleSaveBudget} className="flex items-center gap-2">
           <Save className="h-4 w-4" />
@@ -389,7 +367,6 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
         </Button>
       </div>
 
-      {/* Transaction Modal */}
       {showTransactionModal && selectedCategory && (
         <TransactionModal
           isOpen={showTransactionModal}
@@ -399,7 +376,7 @@ export function BudgetPanel({ onTransactionUpdate }: BudgetPanelProps) {
             setShowTransactionModal(false)
             setSelectedCategory(null)
           }}
-          onTransactionUpdate={refreshBudgetData}
+          onTransactionUpdate={fetchBudgetData}
         />
       )}
     </div>

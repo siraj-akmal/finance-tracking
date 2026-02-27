@@ -8,17 +8,13 @@ import { TransactionTable } from "@/components/transaction-table"
 import { BudgetPanel } from "@/components/budget-panel"
 import { UploadForm } from "@/components/upload-form"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useRefresh } from "@/hooks/use-refresh"
+import { useFinance } from "@/context/finance-context"
 
 export default function HomePage() {
-  const { refreshKey, triggerRefresh } = useRefresh();
-  const [activeTab, setActiveTab] = useState("dashboard");
-
-  const handleTransactionUpdate = () => {
-    triggerRefresh();
-    // Stay on upload tab after successful upload
-    // setActiveTab("dashboard"); // Removed automatic redirect
-  };
+  // Shared refresh + month state from FinanceProvider (see app/layout.tsx).
+  // triggerRefresh() causes every tab to reload its data without full page navigation.
+  const { triggerRefresh, refreshKey } = useFinance()
+  const [activeTab, setActiveTab] = useState("dashboard")
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -41,7 +37,8 @@ export default function HomePage() {
 
         <TabsContent value="dashboard" className="space-y-6">
           <Suspense fallback={<DashboardSkeleton />}>
-            <DashboardOverview key={refreshKey} onTransactionUpdate={handleTransactionUpdate} />
+            {/* key={refreshKey} forces a full remount after data mutations */}
+            <DashboardOverview key={refreshKey} onTransactionUpdate={triggerRefresh} />
           </Suspense>
         </TabsContent>
 
@@ -53,7 +50,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                <TransactionTable key={refreshKey} onTransactionUpdate={handleTransactionUpdate} />
+                <TransactionTable key={refreshKey} onTransactionUpdate={triggerRefresh} />
               </Suspense>
             </CardContent>
           </Card>
@@ -68,8 +65,8 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <UploadForm 
-                onTransactionUpdate={handleTransactionUpdate} 
+              <UploadForm
+                onTransactionUpdate={triggerRefresh}
                 onSwitchToDashboard={() => setActiveTab("dashboard")}
               />
             </CardContent>
@@ -83,7 +80,7 @@ export default function HomePage() {
               <CardDescription>Set and manage your monthly budget by category</CardDescription>
             </CardHeader>
             <CardContent>
-              <BudgetPanel key={refreshKey} onTransactionUpdate={handleTransactionUpdate} />
+              <BudgetPanel key={refreshKey} onTransactionUpdate={triggerRefresh} />
             </CardContent>
           </Card>
         </TabsContent>

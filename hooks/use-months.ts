@@ -1,80 +1,54 @@
-import { useState, useEffect } from 'react';
+/**
+ * hooks/use-months.ts
+ *
+ * Thin compatibility wrappers around FinanceContext.
+ *
+ * These hooks previously fetched months independently, causing each component
+ * to maintain its own month list and selected-month state — leading to
+ * out-of-sync dropdowns when switching tabs.
+ *
+ * They now delegate to useFinance() so the entire app shares a single
+ * source of truth: one month list, one selected month, one refresh cycle.
+ *
+ * If you need month data in a component, prefer calling useFinance() directly.
+ * These wrappers exist only to avoid breaking any remaining call sites.
+ */
 
-interface MonthOption {
-  value: string;
-  label: string;
-}
+import { useFinance } from '@/context/finance-context';
 
+/**
+ * useMonths — returns the shared months list and a refresh trigger.
+ *
+ * @returns months     - available months, newest-first
+ * @returns loading    - true while months are being fetched
+ * @returns refreshMonths - triggers a re-fetch (delegates to triggerRefresh)
+ */
 export function useMonths() {
-  const [months, setMonths] = useState<MonthOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchMonths();
-  }, []);
-
-  const fetchMonths = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('/api/months');
-      const data = await response.json();
-      
-      if (response.ok) {
-        setMonths(data.months);
-      } else {
-        setError(data.error || 'Failed to fetch months');
-      }
-    } catch (err) {
-      setError('Failed to fetch months');
-      console.error('Error fetching months:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshMonths = () => {
-    fetchMonths();
-  };
+  const { months, monthsLoading, triggerRefresh } = useFinance();
 
   return {
     months,
-    loading,
-    error,
-    refreshMonths
+    loading: monthsLoading,
+    error: null,               // errors are logged inside FinanceProvider
+    refreshMonths: triggerRefresh,
   };
 }
 
 /**
- * useDefaultMonth
- * 
- * Provides a consistent default month selection across the entire application.
- * Automatically selects the most recent month when months are available.
- * 
- * Returns:
- * - selectedMonth: the currently selected month value
- * - setSelectedMonth: function to update the selected month
- * - months: array of available months
- * - loading: loading state for months
+ * useDefaultMonth — returns the shared selected month and setter.
+ *
+ * @returns selectedMonth    - currently active YYYY-MM month
+ * @returns setSelectedMonth - updates the shared month (affects all tabs)
+ * @returns months           - available months, newest-first
+ * @returns loading          - true while months are being fetched
  */
 export function useDefaultMonth() {
-  const { months, loading } = useMonths();
-  const [selectedMonth, setSelectedMonth] = useState("");
-
-  // Auto-select the most recent month when months are loaded
-  useEffect(() => {
-    if (months.length > 0 && !selectedMonth && !loading) {
-      // Select the first month (most recent) from the list
-      setSelectedMonth(months[0].value);
-    }
-  }, [months, selectedMonth, loading]);
+  const { selectedMonth, setSelectedMonth, months, monthsLoading } = useFinance();
 
   return {
     selectedMonth,
     setSelectedMonth,
     months,
-    loading
+    loading: monthsLoading,
   };
-} 
+}

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month');
 
     let sql = 'SELECT * FROM budgets';
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (month) {
       sql += ' WHERE month = ?';
@@ -17,42 +17,30 @@ export async function GET(request: NextRequest) {
     sql += ' ORDER BY budgeted DESC';
 
     const budgets = await query(sql, params);
-
     return NextResponse.json({ budgets });
   } catch (error) {
     console.error('Error fetching budgets:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch budgets' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch budgets' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { month, category, budgeted, spent, remaining } = body;
+    const { month, category, budgeted } = body;
 
+    // The budgets table only has: id, category, budgeted, month, created_at.
+    // 'spent' and 'remaining' are computed at query time — not stored.
     const sql = `
-      INSERT INTO budgets (month, category, budgeted, spent, remaining)
-      VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-      budgeted = VALUES(budgeted),
-      spent = VALUES(spent),
-      remaining = VALUES(remaining)
+      INSERT INTO budgets (month, category, budgeted)
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE budgeted = VALUES(budgeted)
     `;
 
-    await query(sql, [month, category, budgeted, spent, remaining]);
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Budget saved successfully'
-    });
+    await query(sql, [month, category, budgeted]);
+    return NextResponse.json({ success: true, message: 'Budget saved successfully' });
   } catch (error) {
     console.error('Error saving budget:', error);
-    return NextResponse.json(
-      { error: 'Failed to save budget' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save budget' }, { status: 500 });
   }
-} 
+}

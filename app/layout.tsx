@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { FinanceProvider } from '@/context/finance-context'
 
 export const metadata: Metadata = {
   title: 'Personal Finance Tracker',
@@ -23,8 +24,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          {/* FinanceProvider supplies shared selectedMonth + refresh state
+              to every client component in the tree via useFinance(). */}
+          <FinanceProvider>
+            {children}
+            <Toaster />
+          </FinanceProvider>
         </ThemeProvider>
       </body>
     </html>
